@@ -231,13 +231,14 @@ class Renderer:
             print(f"Captured frame {self.frame_count} for video")
 
     def finalize_video(self, model_name, posture_type):
-        """Create a video file from all captured frames with annotations"""
+        """Create both video and GIF from captured frames with annotations"""
         if len(self.frames) == 0:
             print("No frames to create video from!")
             return None
         
-        # Create video specific to this simulation
+        # Create video and GIF paths for this simulation
         video_path = os.path.join(self.output_dir, f"{model_name}_{posture_type}_{self.session_id}.mp4")
+        gif_path = os.path.join(self.output_dir, f"{model_name}_{posture_type}_{self.session_id}.gif")
         
         try:
             # Read the first image to get dimensions
@@ -245,9 +246,13 @@ class Renderer:
             height, width, layers = img.shape
             size = (width, height)
             
+            # 1. Create MP4 Video
             # Define the codec and create VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             video = cv2.VideoWriter(video_path, fourcc, 5.0, size)  # 5 FPS for better viewing
+            
+            # Store frames for GIF creation
+            gif_frames = []
             
             # Write frames to video with annotations
             for i, frame_path in enumerate(self.frames):
@@ -264,11 +269,29 @@ class Renderer:
                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                               0.7, (0, 0, 0), 2)
                     
+                    # Write to video
                     video.write(frame)
+                    
+                    # Convert BGR to RGB for GIF (imageio expects RGB)
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    gif_frames.append(rgb_frame)
             
             # Release video writer
             video.release()
             print(f"\nCreated video: {video_path}")
+            
+            # 2. Create GIF using imageio
+            # For better file size, we'll resize frames and use a lower framerate for GIFs
+            resized_gif_frames = []
+            gif_size = (width // 2, height // 2)  # Half size for GIFs to reduce file size
+            
+            for frame in gif_frames:
+                resized = cv2.resize(frame, gif_size)
+                resized_gif_frames.append(resized)
+            
+            # Save as GIF
+            imageio.mimsave(gif_path, resized_gif_frames, fps=3)  # Lower FPS for GIFs
+            print(f"Created GIF: {gif_path}")
             
             # Clean up temporary frame files if requested
             for frame_path in self.frames:
@@ -276,23 +299,25 @@ class Renderer:
                     os.remove(frame_path)
             
             return video_path
-                
+                    
         except Exception as e:
-            print(f"Error creating video: {e}")
+            print(f"Error creating video/GIF: {e}")
             return None
 
     def create_video(self, output_name="complete_simulation"):
-        """Create a master video from all simulations"""
+        """Create a master video and GIF from all simulations"""
         all_mp4_files = [f for f in os.listdir(self.output_dir) if f.endswith('.mp4') and f != f"{output_name}.mp4"]
         
         if not all_mp4_files:
             print("No MP4 files found to combine!")
             return None
         
-        # Path for the combined video
+        # Paths for the combined outputs
         combined_video_path = os.path.join(self.output_dir, f"{output_name}.mp4")
+        combined_gif_path = os.path.join(self.output_dir, f"{output_name}.gif")
         
         try:
+            # 1. Create combined video using FFmpeg
             # Create a temporary file listing all videos to concatenate
             with open('videos_to_concat.txt', 'w') as f:
                 for video_file in all_mp4_files:
@@ -306,6 +331,43 @@ class Renderer:
                 os.remove('videos_to_concat.txt')
             
             print(f"\nCreated combined video: {combined_video_path}")
+            
+            # 2. Create combined GIF (take first few frames from each video to keep size reasonable)
+            try:
+                # For the combined GIF, we'll extract key frames from each video
+                combined_frames = []
+                
+                for video_file in all_mp4_files:
+                    cap = cv2.VideoCapture(os.path.join(self.output_dir, video_file))
+                    
+                    # Get basic info about the video
+                    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    sample_interval = max(1, total_frames // 10)  # Take ~10 frames from each video
+                    
+                    # Extract frames
+                    count = 0
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                        if count % sample_interval == 0:
+                            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            combined_frames.append(rgb_frame)
+                        count += 1
+                    
+                    cap.release()
+                
+                # Resize frames for GIF
+                gif_size = (combined_frames[0].shape[1] // 2, combined_frames[0].shape[0] // 2)
+                resized_combined_frames = [cv2.resize(frame, gif_size) for frame in combined_frames]
+                
+                # Save combined GIF
+                imageio.mimsave(combined_gif_path, resized_combined_frames, fps=3)
+                print(f"Created combined GIF: {combined_gif_path}")
+                
+            except Exception as e:
+                print(f"Error creating combined GIF: {e}")
+            
             return combined_video_path
             
         except Exception as e:
