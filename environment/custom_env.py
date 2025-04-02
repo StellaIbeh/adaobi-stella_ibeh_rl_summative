@@ -24,15 +24,21 @@ class RehabEnv(gym.Env):
         self.renderer = Renderer()
 
     def step(self, action):
+        # Store the action for rendering
+        self.last_action = action
+        
         # Implement the logic for taking a step in the environment
         # Update state based on action and calculate reward
-        posture_correct = self.check_posture()  # Placeholder for posture checking logic
+        posture_correct = self.check_posture()
         reward = 1 if posture_correct else -1
         
-        # Update state (this is a placeholder, implement actual state update logic)
+        # Store the reward for rendering
+        self.last_reward = reward
+        
+        # Update state
         self.state = self.update_state(action)
         
-        done = self.is_done()  # Placeholder for done condition
+        done = self.is_done()
         return self.state, reward, done, {}
 
     def reset(self):
@@ -45,7 +51,7 @@ class RehabEnv(gym.Env):
         # Update the renderer with current state information
         is_correct_posture = self.check_posture()
         
-        # Calculate progress based on timesteps (simple placeholder)
+        # Calculate progress based on timesteps
         if not hasattr(self, 'step_count'):
             self.step_count = 0
         self.step_count += 1
@@ -53,6 +59,10 @@ class RehabEnv(gym.Env):
         
         # Pass the entire state to the renderer
         self.renderer.update_progress(progress, is_correct_posture, self.state)
+        
+        # Pass the latest action and reward if available
+        if hasattr(self, 'last_action') and hasattr(self, 'last_reward'):
+            self.renderer.set_action_and_reward(self.last_action, self.last_reward)
         
         # Add a small delay to make the visualization smoother
         time.sleep(0.1)

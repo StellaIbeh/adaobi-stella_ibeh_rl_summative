@@ -23,14 +23,17 @@ def load_model(model_path):
     else:
         raise FileNotFoundError(f"Model not found at {model_path}")
 
-def simulate_with_posture(env, model, model_name, posture_type, num_steps=20):
+def simulate_with_posture(env, model, model_name, posture_type, num_steps=30):
     """Run a simulation with a specific posture type"""
     # Create a unique session ID for this simulation
-    env.renderer.session_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    env.renderer.session_id = f"{model_name}_{posture_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     # Reset frames for new simulation
     env.renderer.frames = []
     env.renderer.frame_count = 0
+    
+    # Reset the figure to ensure it's initialized properly
+    env.renderer.fig = None
     
     # Set initial posture based on posture_type
     obs = env.reset()
@@ -50,25 +53,45 @@ def simulate_with_posture(env, model, model_name, posture_type, num_steps=20):
     env.state = obs
     
     # Override the check_posture method to return True/False based on posture_type
+    # But make it dynamic - start with incorrect and let the agent try to correct it
     if posture_type == "correct":
+        # Correct posture remains correct
         env.check_posture = lambda: True
     else:
-        env.check_posture = lambda: False
+        # For incorrect posture, it becomes correct once the joint angles get close to neutral
+        # This lets us see the agent learning to correct posture
+        env.check_posture = lambda: np.sum(np.abs(env.state[:3])) < 0.5  # Threshold for "correct" posture
     
     # Run simulation
     print(f"\n=== Running {model_name} Model with {posture_type} posture ===")
     
+    total_reward = 0
     for i in range(num_steps):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
-        print(f"Step {i+1}: Action={action}, Reward={reward}, Posture={'Correct' if env.check_posture() else 'Incorrect'}")
+        total_reward += reward
+        
+        # Show if the posture has been corrected
+        posture_status = "Correct" if env.check_posture() else "Incorrect"
+        print(f"Step {i+1}: Action={action}, Reward={reward}, Posture={posture_status}, Total Reward={total_reward}")
+        
+        # Render first, then add title after figure is created
         env.render()
+        
+        # Now the figure should exist, so add the title
+        if env.renderer.fig is not None:
+            env.renderer.fig.suptitle(
+                f"Rehabilitation Assistant - {model_name} Model - {posture_type.capitalize()} Posture\n" + 
+                f"Step: {i+1}/{num_steps}, Action: {action}, Reward: {reward}, Total: {total_reward}",
+                fontsize=16, fontweight='bold'
+            )
+        
         if done:
             break
     
     # Create video file for this simulation
     video_path = env.renderer.finalize_video(model_name, posture_type)
-    print(f"Completed {model_name} simulation with {posture_type} posture")
+    print(f"Completed {model_name} simulation with {posture_type} posture - Total Reward: {total_reward}")
     return video_path
 
 def main():

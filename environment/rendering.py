@@ -107,13 +107,28 @@ class Renderer:
         
         # Update joint angles
         for i, bar in enumerate(self.angle_bars):
+            # Color code bars based on how close they are to optimal position
+            # (In rehabilitation, closer to 0 is usually better)
+            deviation = abs(self.joint_angles[i])
+            normalized_deviation = min(deviation / np.pi, 1.0)  # Scale to [0,1]
+            # Color gradient from green (good) to red (bad)
+            color = (normalized_deviation, 1.0 - normalized_deviation, 0.0)
             bar.set_height(self.joint_angles[i])
-            bar.set_color('blue')
+            bar.set_color(color)
         
         # Update muscle activation
         for i, bar in enumerate(self.activation_bars):
-            bar.set_height(self.muscle_activation[i])
-            bar.set_color('red')
+            # Color based on activation level - from blue (low) to red (high)
+            activation = self.muscle_activation[i]
+            bar.set_height(activation)
+            # Color: blue for low, purple for medium, red for high activation
+            if activation < 0.3:
+                color = 'blue'
+            elif activation < 0.7:
+                color = 'purple'
+            else:
+                color = 'red'
+            bar.set_color(color)
         
         # Update posture correctness
         if self.posture_correctness:
@@ -136,13 +151,35 @@ class Renderer:
                                              color='green' if self.posture_correctness else 'red', 
                                              fontsize=14, fontweight='bold')
         
-        # Draw stick figure
+        # Add current action display
+        if hasattr(self, 'current_action'):
+            action_text = "ACTION: Unknown"
+            action_color = 'gray'
+            
+            if self.current_action == 0:
+                action_text = "ACTION: Adjust Difficulty"
+                action_color = 'blue'
+            elif self.current_action == 1:
+                action_text = "ACTION: Encourage"
+                action_color = 'green'
+            elif self.current_action == 2:
+                action_text = "ACTION: Suggest Break"
+                action_color = 'orange'
+                
+            self.ax_human.text(0, -1.3, action_text,
+                              horizontalalignment='center',
+                              color=action_color, fontsize=12,
+                              fontweight='bold')
+        
+        # Draw stick figure with color based on posture correctness
+        figure_color = 'green' if self.posture_correctness else 'red'
+        
         # Head
-        head = plt.Circle((0, 0.7), 0.2, fill=False, color='blue', linewidth=2)
+        head = plt.Circle((0, 0.7), 0.2, fill=False, color=figure_color, linewidth=2)
         self.ax_human.add_patch(head)
         
         # Torso
-        self.ax_human.plot([0, 0], [0.5, -0.2], 'b-', linewidth=3)
+        self.ax_human.plot([0, 0], [0.5, -0.2], color=figure_color, linewidth=3)
         
         # Arms - use joint angles to determine position
         left_angle = self.joint_angles[0]
@@ -151,23 +188,32 @@ class Renderer:
         # Left arm
         left_arm_x = -0.6 * np.cos(left_angle + np.pi/2)
         left_arm_y = 0.3 + 0.6 * np.sin(left_angle + np.pi/2)
-        self.ax_human.plot([0, left_arm_x], [0.3, left_arm_y], 'b-', linewidth=3)
+        self.ax_human.plot([0, left_arm_x], [0.3, left_arm_y], color=figure_color, linewidth=3)
         
         # Right arm
         right_arm_x = 0.6 * np.cos(right_angle + np.pi/2)
         right_arm_y = 0.3 + 0.6 * np.sin(right_angle + np.pi/2)
-        self.ax_human.plot([0, right_arm_x], [0.3, right_arm_y], 'b-', linewidth=3)
+        self.ax_human.plot([0, right_arm_x], [0.3, right_arm_y], color=figure_color, linewidth=3)
         
         # Legs
         leg_angle = self.joint_angles[2]
         
         # Left leg
-        self.ax_human.plot([0, -0.4], [-0.2, -0.8], 'b-', linewidth=3)
+        self.ax_human.plot([0, -0.4], [-0.2, -0.8], color=figure_color, linewidth=3)
         
         # Right leg - use leg angle
         right_leg_x = 0.4 * np.cos(leg_angle)
         right_leg_y = -0.2 - 0.6 * np.sin(leg_angle)
-        self.ax_human.plot([0, right_leg_x], [-0.2, right_leg_y], 'b-', linewidth=3)
+        self.ax_human.plot([0, right_leg_x], [-0.2, right_leg_y], color=figure_color, linewidth=3)
+        
+        # Add reward information
+        if hasattr(self, 'current_reward'):
+            reward_text = f"REWARD: {self.current_reward:.1f}"
+            reward_color = 'green' if self.current_reward > 0 else 'red'
+            self.ax_human.text(0, -1.0, reward_text, 
+                             horizontalalignment='center',
+                             color=reward_color, fontsize=12, 
+                             fontweight='bold')
 
     def save_frame(self):
         """Save current frame and add to video"""
@@ -185,7 +231,7 @@ class Renderer:
             print(f"Captured frame {self.frame_count} for video")
 
     def finalize_video(self, model_name, posture_type):
-        """Create a video file from all captured frames"""
+        """Create a video file from all captured frames with annotations"""
         if len(self.frames) == 0:
             print("No frames to create video from!")
             return None
@@ -201,12 +247,23 @@ class Renderer:
             
             # Define the codec and create VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            video = cv2.VideoWriter(video_path, fourcc, 10.0, size)  # Increased to 10 FPS
+            video = cv2.VideoWriter(video_path, fourcc, 5.0, size)  # 5 FPS for better viewing
             
-            # Write frames to video
-            for frame_path in self.frames:
+            # Write frames to video with annotations
+            for i, frame_path in enumerate(self.frames):
+                # Read frame
                 frame = cv2.imread(frame_path)
                 if frame is not None:
+                    # Add frame counter
+                    cv2.putText(frame, f"Frame: {i+1}/{len(self.frames)}", 
+                              (10, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 
+                              0.7, (0, 0, 0), 2)
+                    
+                    # Add model and posture info
+                    cv2.putText(frame, f"Model: {model_name}, Posture: {posture_type}", 
+                              (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
+                              0.7, (0, 0, 0), 2)
+                    
                     video.write(frame)
             
             # Release video writer
@@ -219,7 +276,7 @@ class Renderer:
                     os.remove(frame_path)
             
             return video_path
-            
+                
         except Exception as e:
             print(f"Error creating video: {e}")
             return None
@@ -264,6 +321,11 @@ class Renderer:
             except:
                 print("Fallback method also failed.")
                 return None
+
+    def set_action_and_reward(self, action, reward):
+        """Set the current action and reward for display"""
+        self.current_action = action
+        self.current_reward = reward
 
     def run(self):
         # This method is now used just to clean up when done
