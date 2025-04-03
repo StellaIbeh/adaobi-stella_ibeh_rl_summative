@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 from environment.rendering import Renderer
 import time
@@ -39,13 +39,15 @@ class RehabEnv(gym.Env):
         self.state = self.update_state(action)
         
         done = self.is_done()
-        return self.state, reward, done, {}
+        # Return format for gymnasium: obs, reward, terminated, truncated, info
+        return self.state, reward, done, False, {}
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         # Reset the state of the environment to an initial state
+        super().reset(seed=seed)
         self.state = np.random.uniform(low=-np.pi, high=np.pi, size=(3,))  # Random joint angles
         self.state = np.concatenate((self.state, np.zeros(3)))  # Add muscle activation and feedback
-        return self.state
+        return self.state, {}
 
     def render(self, mode='human'):
         # Update the renderer with current state information
