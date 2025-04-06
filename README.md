@@ -40,6 +40,19 @@ An interactive renderer visualizes the environment using Matplotlib, showing:
 - Joint angles and muscle activation levels
 - Real-time posture correctness feedback
 
+### DQN Loss Curve
+
+![DQN Loss Curve]![alt text](dqn_loss_curve_20250404_172117.png)
+
+### PP0 Policy Entropy
+![PPO Policy Entropy]![alt text](ppo_policy_entropy_20250404_172121.png)
+
+### cumulative Rewards
+![Cumulative Reward] ![alt text](cumulative_rewards_20250404_172123.png)
+
+### Model Stability Analysis
+![Model Stability Analysis]![alt text](model_stability_20250404_172124.png)
+ 
 **Generated Visualizations:**
 - Individual GIF animations for DQN and PPO models demonstrating posture corrections.
 
@@ -116,6 +129,38 @@ python main.py
 python play_video.py --model dqn
 python play_video.py --model ppo
 ```
+
+## 🎯 Hyperparameter Tuning
+
+Both DQN and PPO models underwent extensive hyperparameter optimization using Optuna with 50 trials each. The following parameters were tuned:
+
+### DQN Hyperparameters
+- Learning rate: 1e-5 to 1e-3 (log scale)
+- Buffer size: 10,000 to 100,000
+- Learning starts: 1,000 to 10,000
+- Batch size: 32 to 256
+- Gamma (discount factor): 0.9 to 0.99999
+- Exploration parameters:
+  - Exploration fraction: 0.1 to 0.5
+  - Initial epsilon: 0.5 to 1.0
+  - Final epsilon: 0.01 to 0.1
+
+### PPO Hyperparameters
+- Learning rate: 1e-5 to 1e-3 (log scale)
+- Number of steps: 32 to 2048
+- Batch size: 32 to 256
+- Number of epochs: 5 to 20
+- Gamma (discount factor): 0.9 to 0.99999
+- GAE lambda: 0.9 to 1.0
+- Clip range: 0.1 to 0.4
+- Entropy coefficient: 0.0 to 0.01
+
+The optimization process:
+1. Each parameter combination was evaluated over 5000 timesteps
+2. Models were evaluated on 5 episodes each
+3. Mean reward was used as the optimization metric
+4. Results were saved with timestamps for tracking
+
 
 ## 📈 Results and Analysis
 
