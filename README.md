@@ -42,16 +42,16 @@ An interactive renderer visualizes the environment using Matplotlib, showing:
 
 ### DQN Loss Curve
 
-![DQN Loss Curve]("C:\Users\HP\Downloads\dqn_loss_curve_20250404_172117.png")
+![DQN Loss Curve](![alt text](dqn_loss_curve_20250404_172117.png)
 
 ### PP0 Policy Entropy
-![PPO Policy Entropy]("C:\Users\HP\Downloads\ppo_policy_entropy_20250404_172121.png")
+![PPO Policy Entropy](![alt text](ppo_policy_entropy_20250404_172121.png)
 
 ### cumulative Rewards
-![Cumulative Reward]("C:\Users\HP\Downloads\cumulative_rewards_20250404_172123.png")
+![Cumulative Reward](![alt text](cumulative_rewards_20250404_172123.png)
 
 ### Model Stability Analysis
-![Model Stability Analysis]("C:\Users\HP\Downloads\model_stability_20250404_172124.png")
+![Model Stability Analysis](![alt text](model_stability_20250404_172124.png)
  
 **Generated Visualizations:**
 - Individual GIF animations for DQN and PPO models demonstrating posture corrections.
