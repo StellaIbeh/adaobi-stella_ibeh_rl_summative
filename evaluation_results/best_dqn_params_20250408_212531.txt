@@ -1,0 +1,13 @@
+Best dqn parameters found:
+============================
+Best Value: -inf
+
+Parameters:
+learning_rate: 0.00045493827211835156
+buffer_size: 51479
+learning_starts: 9562
+batch_size: 235
+gamma: 0.9997304512301263
+exploration_fraction: 0.34144437266389654
+exploration_initial_eps: 0.683024108064828
+exploration_final_eps: 0.08688977888721898

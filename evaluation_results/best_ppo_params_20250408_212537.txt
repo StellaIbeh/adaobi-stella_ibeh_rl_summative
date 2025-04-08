@@ -1,0 +1,13 @@
+Best ppo parameters found:
+============================
+Best Value: -inf
+
+Parameters:
+learning_rate: 0.0009773969994786298
+n_steps: 264
+batch_size: 83
+n_epochs: 10
+gamma: 0.9179376890084917
+gae_lambda: 0.9111048170511641
+clip_range: 0.27096381865935126
+ent_coef: 0.004210981650091159
