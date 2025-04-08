@@ -68,7 +68,7 @@ An interactive renderer visualizes the environment using Matplotlib, showing:
 ## 📁 Project Structure
 
 ```
-rehab_rl_project/
+adaobi-stella_ibeh_rl_summative/
 ├── environment/
 │   ├── custom_env.py            # Custom Gymnasium environment
 │   ├── rendering.py             # Visualization system using Matplotlib
@@ -90,8 +90,8 @@ rehab_rl_project/
 ## 🛠️ Installation
 
 ```bash
-git clone https://github.com/yourusername/rehab_rl_project.git
-cd rehab_rl_project
+git clone https://github.com/StellaIbeh/adaobi-stella_ibeh_rl_summative.git
+cd adaobi-stella_ibeh_rl_summative
 pip install -r requirements.txt
 ```
 
@@ -160,6 +160,31 @@ The optimization process:
 2. Models were evaluated on 5 episodes each
 3. Mean reward was used as the optimization metric
 4. Results were saved with timestamps for tracking
+
+
+
+## Hyperparameter Tuning Results
+
+### Optimized Parameters Comparison
+
+| Parameter | DQN Value | PPO Value | Notes |
+|-----------|-----------|-----------|-------|
+| Learning Rate | 4.55e-4 | 9.77e-4 | PPO benefits from higher learning rate |
+| Batch Size | 235 | 83 | DQN works better with larger batches |
+| Gamma (Discount) | 0.9997 | 0.9179 | DQN needs higher discount for long-term rewards |
+| Buffer/Steps | 51,479 | 264 | Different mechanisms for experience collection |
+
+### Key DQN-Specific Parameters
+- Exploration fraction: 0.341
+- Initial epsilon: 0.683
+- Final epsilon: 0.087
+- Learning starts: 9,562
+
+### Key PPO-Specific Parameters
+- N epochs: 10
+- GAE lambda: 0.911
+- Clip range: 0.271
+- Entropy coefficient: 0.004
 
 
 ## 📈 Results and Analysis
